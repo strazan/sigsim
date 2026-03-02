@@ -1,6 +1,6 @@
 {
   "name": "sigsim",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Fast file similarity detection with TLSH. Native Rust speed for near-duplicate detection of re-exported PDFs, re-saved DOCXs, and more.",
   "type": "module",
   "main": "./dist/index.cjs",
