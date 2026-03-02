@@ -1,0 +1,14 @@
+node_modules/
+dist/
+target/
+*.node
+native.cjs
+index.d.ts
+.DS_Store
+*.tsbuildinfo
+*.log
+.env
+.env.*
+coverage/
+.vscode/
+.idea/
