@@ -31,7 +31,9 @@ pub fn tlsh_distance(a: String, b: String) -> Result<i32> {
 /// Default threshold is 30 (lower = stricter).
 #[napi]
 pub fn tlsh_similar(a: String, b: String, options: Option<SearchOptions>) -> Result<bool> {
-    let threshold = options.and_then(|o| o.threshold).unwrap_or(DEFAULT_THRESHOLD);
+    let threshold = options
+        .and_then(|o| o.threshold)
+        .unwrap_or(DEFAULT_THRESHOLD);
     let distance = tlsh_distance(a, b)?;
     Ok(distance <= threshold)
 }
@@ -43,7 +45,9 @@ pub fn tlsh_search(
     haystack: Vec<String>,
     options: Option<SearchOptions>,
 ) -> Result<Vec<SearchResult>> {
-    let threshold = options.and_then(|o| o.threshold).unwrap_or(DEFAULT_THRESHOLD);
+    let threshold = options
+        .and_then(|o| o.threshold)
+        .unwrap_or(DEFAULT_THRESHOLD);
     let tn = parse_tlsh(&needle)?;
 
     let mut results: Vec<_> = haystack
