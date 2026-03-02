@@ -2,14 +2,13 @@ import { randomBytes } from "node:crypto";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+// @ts-expect-error — no types
+import ssdeep from "ssdeep.js";
+// @ts-expect-error — no types
+import jsTlsh from "tlsh";
 import { afterAll, beforeAll, bench, describe } from "vitest";
 import { sigsim } from "../../dist/index.js";
 import { fingerprintBuffer, tlshDistance, tlshSearch } from "../../native.cjs";
-
-// @ts-expect-error — no types
-import jsTlsh from "tlsh";
-// @ts-expect-error — no types
-import ssdeep from "ssdeep.js";
 
 let tempDir: string;
 const files: Record<string, string> = {};

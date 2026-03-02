@@ -1,0 +1,11 @@
+{
+  "name": "sigsim-darwin-x64",
+  "version": "0.1.0",
+  "os": ["darwin"],
+  "cpu": ["x64"],
+  "main": "sigsim.darwin-x64.node",
+  "files": ["sigsim.darwin-x64.node"],
+  "description": "sigsim native binding for darwin-x64",
+  "license": "MIT",
+  "engines": { "node": ">=18" }
+}

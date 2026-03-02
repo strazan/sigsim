@@ -1,0 +1,171 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+concurrency:
+  group: "release"
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  build:
+    name: Build (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-apple-darwin
+            os: macos-latest
+          - target: aarch64-apple-darwin
+            os: macos-14
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            flags: --use-napi-cross
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+            use-zig: true
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-latest
+            flags: --use-napi-cross
+          - target: aarch64-unknown-linux-musl
+            os: ubuntu-latest
+            use-zig: true
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+      - run: pnpm install
+      - name: Setup Zig
+        if: matrix.use-zig
+        uses: mlugg/setup-zig@v2
+      - name: Install cargo-zigbuild
+        if: matrix.use-zig
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-zigbuild
+      - name: Build native module
+        run: |
+          npx napi build --platform --release --target ${{ matrix.target }} ${{ matrix.flags || '' }} ${{ matrix.use-zig && '-x' || '' }}
+          mv index.js native.cjs
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bindings-${{ matrix.target }}
+          path: |
+            *.node
+            native.cjs
+          if-no-files-found: error
+
+  test:
+    name: Test (${{ matrix.target }})
+    needs: build
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: aarch64-apple-darwin
+            os: macos-14
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: bindings-${{ matrix.target }}
+          path: .
+      - run: pnpm build:ts
+      - run: pnpm test
+
+  publish:
+    name: Publish
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+      - run: pnpm install
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Move artifacts
+        run: |
+          for dir in artifacts/bindings-*/; do
+            cp "$dir"*.node .
+            cp "$dir"native.cjs . 2>/dev/null || true
+          done
+          ls -la *.node native.cjs
+      - run: pnpm build:ts
+      - name: Prepare and publish platform packages
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          for pkg in npm/*/; do
+            NAME=$(basename "$pkg")
+            NODE_FILE="sigsim.${NAME}.node"
+            if [ -f "$NODE_FILE" ]; then
+              cp "$NODE_FILE" "$pkg"
+              node -e "const p='$pkg/package.json';const j=require('./'+p);j.version='$VERSION';require('fs').writeFileSync(p,JSON.stringify(j,null,2)+'\n')"
+              echo "Publishing $pkg"
+              npm publish "$pkg" --access public || true
+            fi
+          done
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Add optionalDependencies
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          node -e "
+            const pkg = require('./package.json');
+            pkg.optionalDependencies = {
+              'sigsim-darwin-arm64': '$VERSION',
+              'sigsim-darwin-x64': '$VERSION',
+              'sigsim-linux-arm64-gnu': '$VERSION',
+              'sigsim-linux-arm64-musl': '$VERSION',
+              'sigsim-linux-x64-gnu': '$VERSION',
+              'sigsim-linux-x64-musl': '$VERSION',
+              'sigsim-win32-x64-msvc': '$VERSION',
+            };
+            require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+      - name: Publish main package
+        run: npm publish --provenance --access public --ignore-scripts
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true

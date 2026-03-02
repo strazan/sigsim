@@ -1,0 +1,11 @@
+{
+  "name": "sigsim-win32-x64-msvc",
+  "version": "0.1.0",
+  "os": ["win32"],
+  "cpu": ["x64"],
+  "main": "sigsim.win32-x64-msvc.node",
+  "files": ["sigsim.win32-x64-msvc.node"],
+  "description": "sigsim native binding for win32-x64-msvc",
+  "license": "MIT",
+  "engines": { "node": ">=18" }
+}

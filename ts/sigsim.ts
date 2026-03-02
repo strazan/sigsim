@@ -17,8 +17,7 @@ async function withErrors<T>(fn: () => Promise<T>): Promise<T> {
   }
 }
 
-const file = (path: string): Promise<string | null> =>
-  withErrors(() => fingerprintFile(path));
+const file = (path: string): Promise<string | null> => withErrors(() => fingerprintFile(path));
 
 const files = (paths: string[]): Promise<(string | null)[]> =>
   withErrors(() => fingerprintFiles(paths));
@@ -34,11 +33,8 @@ const distance = (a: string, b: string): number => tlshDistance(a, b);
 const similar = (a: string, b: string, options?: SearchOptions): boolean =>
   tlshSimilar(a, b, options);
 
-const search = (
-  needle: string,
-  haystack: string[],
-  options?: SearchOptions,
-): SearchResult[] => tlshSearch(needle, haystack, options);
+const search = (needle: string, haystack: string[], options?: SearchOptions): SearchResult[] =>
+  tlshSearch(needle, haystack, options);
 
 export const sigsim = {
   file,

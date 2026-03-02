@@ -1,0 +1,12 @@
+{
+  "name": "sigsim-linux-arm64-gnu",
+  "version": "0.1.0",
+  "os": ["linux"],
+  "cpu": ["arm64"],
+  "libc": ["glibc"],
+  "main": "sigsim.linux-arm64-gnu.node",
+  "files": ["sigsim.linux-arm64-gnu.node"],
+  "description": "sigsim native binding for linux-arm64-gnu",
+  "license": "MIT",
+  "engines": { "node": ">=18" }
+}
